@@ -150,5 +150,5 @@ python train.py
 - DACD-HRTF is designed for sparse-measurement HRTF upsampling and supports target-direction reconstruction without inference-time fine-tuning.
 - The training datasets are **ARI, BiLi, CIPIC, HUTUBS, Listen, and Sonicom**.
 - **RIEC** and **Crossmod** are held out for unseen-dataset evaluation.
-- The **core training code** will be made public after the work is received.
+- The **core model code** will be made public after the work is received.
   
