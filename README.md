@@ -16,7 +16,7 @@ As shown in the overview figure, **DACD-HRTF** is organized into four main compo
 
 Given a small set of **sparsely measured HRTFs**, DACD-HRTF directly reconstructs **high-resolution personalized HRTFs** at target directions without fine-tuning network parameters at inference, making it suitable for rapid deployment in unseen measurement environments.
 
-![overview](README.assets/overview.pdf)
+![overview](README.assets/overview.png)
 
 ### Requirements
 
