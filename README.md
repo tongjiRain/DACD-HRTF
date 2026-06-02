@@ -16,7 +16,7 @@ As shown in the overview figure, **DACD-HRTF** is organized into four main compo
 
 Given a small set of **sparsely measured HRTFs**, DACD-HRTF directly reconstructs **high-resolution personalized HRTFs** at target directions without fine-tuning network parameters at inference, making it suitable for rapid deployment in unseen measurement environments.
 
-![overview](README.assets/overview.png)
+![overview](README.assets/overview.pdf)
 
 ### Requirements
 
@@ -148,6 +148,7 @@ python train.py
 ## Notes
 
 - DACD-HRTF is designed for sparse-measurement HRTF upsampling and supports target-direction reconstruction without inference-time fine-tuning.
-- The training datasets are **ARI, BiLi, CIPIC, HUTUBS, Listen, and Sonicom**. **RIEC** and **Crossmod** are held out for unseen-dataset evaluation.
-- The core training code will be made public after the work is received.
+- The training datasets are **ARI, BiLi, CIPIC, HUTUBS, Listen, and Sonicom**.
+- **RIEC** and **Crossmod** are held out for unseen-dataset evaluation.
+- The **core training code** will be made public after the work is received.
   
