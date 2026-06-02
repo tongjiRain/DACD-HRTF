@@ -4,7 +4,8 @@ Code release for: DACD-HRTF (Core Code comming soon)
 
 ### Abstract
 
-Personalized head-related transfer function (HRTF) modeling is essential for immersive spatial audio rendering. Conventional personalized methods require laborious and time-consuming measurements, making them impractical for large-scale applications. Recent data-driven methods typically leverage existing measurement datasets, either by upsampling sparse measurements on fixed directions or by directly estimating HRTFs from anatomical geometry information. However, inconsistent spatial sampling directions and anatomical information across datasets limit these methods to single-dataset training and increase the risk of overfitting. In this work, we propose CDP-HRTF, a cross-dataset personalized HRTF estimation framework based on sparse measurements. Specifically, our method design a direction-aware autoencoder architecture that encodes sparsely measured HRTFs into a unified latent representation, which is then decoded to estimate personalized HRTFs at arbitrary spatial directions.  This design enables joint training across datasets with varying spatial sampling directions.  Considering that measured HRTFs are affected by dataset-specific measurement conditions such as equipment and environment, we further develop a contrastive-based disentanglement strategy to explicitly separate dataset-specific features from the unified latent representation.  Extensive experiments on eight public HRTF datasets show that our method outperforms both interpolation-based and neural network baselines in estimating personalized HRTFs for unseen subjects, whether from held-out individuals within the training datasets or from entirely new datasets, using only sparse measurements.
+Personalized head-related transfer function (HRTF) modeling is essential for immersive spatial audio rendering. However, acquiring high-resolution HRTFs is laborious, as it requires measurements from hundreds or thousands of spatial directions. To alleviate this burden, recent approaches either estimate HRTFs from anatomical data or reconstruct high-resolution HRTFs from a small set of measured directions. Existing methods, however, are often limited to single-dataset training and may fail to generalize to new environments due to dataset-specific measurement biases (e.g., device frequency responses and recording environment setup). In this work, we propose DACD-HRTF, a cross-dataset personalized HRTF upsampling framework based on sparse HRTF measurements. Specifically, DACD-HRTF integrates a direction-aware autoencoder to encode sparse measurements into unified latent representations, which are then decoded to estimate personalized HRTFs over high-resolution spatial directions. This design supports joint training across multiple datasets with heterogeneous spatial sampling grids and measurement conditions. To further mitigate measurement biases across datasets, we introduce a contrastive-based disentanglement strategy that separates subject-specific and dataset-specific latent features, thereby enhancing cross-dataset generalization. Crucially, our framework enables direct reconstruction from sparse measurements without fine-tuning of network parameters at inference, allowing rapid deployment in new environments.
+Extensive experiments on eight public HRTF datasets demonstrate that DACD-HRTF achieves competitive performance in reconstructing personalized HRTFs for unseen datasets, showing particular effectiveness under practical sparse measurement settings.
 
 ### Requirements
 
@@ -32,8 +33,11 @@ You can obtain the raw HRTF datasets from the [SOFA conventions website](https:/
 
 We use the following publicly available datasets in our work:
 
-- ARI  、BiLi 、CIPIC  、Listen 、HUTUBS 、RIEC 、3D3A 、Crossmod 
+- ARI  、BiLi 、CIPIC  、Listen 、HUTUBS 、Sonicom、RIEC 、Crossmod
+- **Training/in-dataset evaluation datasets**: ARI, BiLi, CIPIC, Listen, HUTUBS and Sonicom
+- **Unseen-dataset evaluation datasets**:RIEC and Crossmod
 
+> **Note**: The released pretrained checkpoint is trained on ARI, BiLi, CIPIC, Listen, HUTUBS and Sonicom.
 > **Note**: Two subjects from the ARI dataset (`hrtf_nh10.sofa` and `hrtf_nh22.sofa`) are excluded due to missing measurements in certain directions.
 
 After downloading, the raw data should be organized as follows:
@@ -73,8 +77,6 @@ CDP-HRTF/
  │       └── ... # One file per subject per dataset
  ├── preprocessed_data_few/      # Subset for quick checkpoint validation (no download needed)
  │   └── HRIR/
- │       ├── 3d3a_000.pkl
- │       ├── 3d3a_001.pkl
  │       ├── crossmod_000.pkl
  │       ├── crossmod_001.pkl
  │       ├── riec_000.pkl
@@ -121,7 +123,7 @@ python evaluate_model.py
 ```bash
 python train.py 
 --dataset_directory ./preprocessed_data/HRIR 
--n ari bili cipic hutubs listen 
+-n ari bili cipic hutubs listen sonicom 
 --type_config train
 ```
 
