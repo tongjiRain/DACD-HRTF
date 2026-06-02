@@ -1,11 +1,22 @@
 # DACD-HRTF
-Code release for: DACD-HRTF (Core Code comming soon)
+This repository contains the official implementation of **DACD-HRTF**.
 
+### Overview
 
-### Abstract
+**DACD-HRTF** tackles **cross-dataset personalized HRTF upsampling** from sparse HRTF measurements. Instead of requiring dense measurements from hundreds or thousands of spatial directions, DACD-HRTF reconstructs high-resolution personalized HRTFs from only a small set of measured directions, while supporting joint training across HRTF datasets with heterogeneous spatial sampling grids and measurement conditions.
 
-Personalized head-related transfer function (HRTF) modeling is essential for immersive spatial audio rendering. However, acquiring high-resolution HRTFs is laborious, as it requires measurements from hundreds or thousands of spatial directions. To alleviate this burden, recent approaches either estimate HRTFs from anatomical data or reconstruct high-resolution HRTFs from a small set of measured directions. Existing methods, however, are often limited to single-dataset training and may fail to generalize to new environments due to dataset-specific measurement biases (e.g., device frequency responses and recording environment setup). In this work, we propose DACD-HRTF, a cross-dataset personalized HRTF upsampling framework based on sparse HRTF measurements. Specifically, DACD-HRTF integrates a direction-aware autoencoder to encode sparse measurements into unified latent representations, which are then decoded to estimate personalized HRTFs over high-resolution spatial directions. This design supports joint training across multiple datasets with heterogeneous spatial sampling grids and measurement conditions. To further mitigate measurement biases across datasets, we introduce a contrastive-based disentanglement strategy that separates subject-specific and dataset-specific latent features, thereby enhancing cross-dataset generalization. Crucially, our framework enables direct reconstruction from sparse measurements without fine-tuning of network parameters at inference, allowing rapid deployment in new environments.
-Extensive experiments on eight public HRTF datasets demonstrate that DACD-HRTF achieves competitive performance in reconstructing personalized HRTFs for unseen datasets, showing particular effectiveness under practical sparse measurement settings.
+The key challenge is that measured HRTFs contain both **subject-specific acoustic cues** and **dataset-specific measurement variations**, such as different devices, sampling layouts, coordinate systems, and recording environments. These dataset-dependent effects can limit the generalization ability of models trained on public HRTF datasets, especially when they are deployed to a new measurement environment. DACD-HRTF addresses this issue by combining direction-aware modeling with contrastive latent disentanglement.
+
+As shown in the overview figure, **DACD-HRTF** is organized into four main components:
+
+1. **Unified Cross-Dataset Preprocessing**: converts HRIRs from multiple HRTF datasets into binaural HRTF magnitude records with unified spatial direction representations, enabling joint training across datasets with different sampling grids.
+2. **Direction-Aware Encoder**: encodes each sparse HRTF measurement together with its corresponding spatial direction, so the model is not restricted to a fixed input layout.
+3. **Contrastive-Based Disentanglement**: separates the latent representation into **subject-specific** and **dataset-specific** components, reducing the influence of dataset-dependent measurement bias.
+4. **Direction-Aware Decoder**: reconstructs personalized HRTF magnitudes at arbitrary target directions conditioned on the learned latent representation and the target spatial direction.
+
+Given a small set of **sparsely measured HRTFs**, DACD-HRTF directly reconstructs **high-resolution personalized HRTFs** at target directions without fine-tuning network parameters at inference, making it suitable for rapid deployment in unseen measurement environments.
+
+![overview](README.assets/overview.png)
 
 ### Requirements
 
@@ -134,5 +145,9 @@ python train.py
   ```bash
   tensorboard --logdir=outputs/model/logs --port=6008
   ```
+## Notes
 
+- DACD-HRTF is designed for sparse-measurement HRTF upsampling and supports target-direction reconstruction without inference-time fine-tuning.
+- The training datasets are **ARI, BiLi, CIPIC, HUTUBS, Listen, and Sonicom**. **RIEC** and **Crossmod** are held out for unseen-dataset evaluation.
+- The core training code will be made public after the work is received.
   
