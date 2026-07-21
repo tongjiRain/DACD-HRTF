@@ -7,7 +7,7 @@ import numpy as np
 import torch as th
 import matplotlib.pyplot as plt
 from src.dataset import HRTFDataset, MergedHRTFDataset
-from src.model import CDP_HRTF
+from src.model import DACD_HRTF
 from src.trainer import Trainer
 from src.losses import LSD, LSD_before_mean, CosDistIntra, ILD_Loss,Ortho_Loss
 from src.configs import *
@@ -21,7 +21,7 @@ def arg_parse():
                         default='./preprocessed_data/HRIR',
                         help="path to the train data")
     parser.add_argument('-n', '--training_dataset_names', nargs='+',
-                        default=['ari','bili','cipic','hutubs','listen'])
+                        default=['ari','bili','cipic','hutubs','listen','sonicom'])
     parser.add_argument("-a", "--artifacts_directory",
                         type=str,
                         default="",
@@ -98,8 +98,14 @@ def test(net, best_loss, data, use_cuda=True):
         srcpos_sub = srcpos[sub_id:sub_id + 1, :, :]
         prediction = net.forward(input=input, srcpos=srcpos_sub, mask=mask_sub)
         hrtf_est = prediction["output"].detach().clone()
-        returns["lsd"] += lsd_loss(hrtf_est, hrtf_sub)
-        returns["ild"] += ild_loss(hrtf_est, hrtf_sub)
+        eval_range = config.get("evaluation_frequency_range", (20, 20000))
+        freq_axis = np.linspace(0, config["max_frequency"], hrtf_est.shape[-1] + 1)[1:]
+        freq_mask = (freq_axis >= eval_range[0]) & (freq_axis <= eval_range[1])
+        freq_idx = th.as_tensor(np.nonzero(freq_mask)[0], device=hrtf_est.device)
+        hrtf_est_eval = hrtf_est.index_select(-1, freq_idx)
+        hrtf_sub_eval = hrtf_sub.index_select(-1, freq_idx)
+        returns["lsd"] += lsd_loss(hrtf_est_eval, hrtf_sub_eval)
+        returns["ild"] += ild_loss(hrtf_est_eval, hrtf_sub_eval)
     loss = returns["lsd"]
     returns["loss"] = loss.detach().clone()
     for k in returns:
@@ -142,7 +148,7 @@ if __name__ == "__main__":
     print("=====================")
 
     # ========== init model ===========
-    net = CDP_HRTF(config=config)
+    net = DACD_HRTF(config=config)
     # #========== make dir contains model ===========
     if args.artifacts_directory == "":
         config["artifacts_dir"] = "outputs/" + datestamp + '_' + config[
@@ -155,9 +161,9 @@ if __name__ == "__main__":
 
     # ========== load dataset ===========
     train_dataset = MergedHRTFDataset(args.training_dataset_names,
-                                      hrir_path="./preprocessed_data/HRIR",
+                                      hrir_path=args.dataset_directory,
                                       norm_way=0)
-    dataset_hutubs = HRTFDataset(hrir_path="./preprocessed_data/HRIR",
+    dataset_hutubs = HRTFDataset(hrir_path=args.dataset_directory,
                                  dataset="hutubs",
                                  norm_way=0)
     valid_dataset = dataset_hutubs.validitem()
@@ -176,4 +182,3 @@ if __name__ == "__main__":
     print("---------------------")
     train(trainer=trainer)
     writer.close()
-
