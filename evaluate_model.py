@@ -5,7 +5,7 @@ import datetime
 from src.configs import *
 import numpy as np
 import torch as th
-from src.model import CDP_HRTF
+from src.model import DACD_HRTF
 from src.dataset import HRTFDataset, MergedHRTFDataset
 from src.losses import LSD, LSD_before_mean, CosDistIntra,ILD_Loss
 from src.utils import get_plane_indices
@@ -21,12 +21,12 @@ def initParams():
     parser.add_argument("-a", "--artifacts_directory",type=str,default="",
                         help="directory to write test figures to")
     parser.add_argument('-t', '--testing_dataset_names', nargs='+',
-                        default=["riec","crossmod","3d3a"])
+                        default=["riec","crossmod"])
 
     # Model parameters
     parser.add_argument("-lf", "--model_file",
                         type=str,
-                        default="./checkpoint/cdp_hrtf.best.net",
+                        default="./checkpoint/dacd_hrtf.best.net",
                         help="model file containing the trained network weights")
     # inference configuration
     parser.add_argument("-c", "--type_config",type=str,default='test')
@@ -57,7 +57,7 @@ if __name__ == '__main__':
     os.makedirs(config["artifacts_dir"], exist_ok=True)
     print("---------------------")
     # ========== load model =================
-    net = CDP_HRTF(config=config)
+    net = DACD_HRTF(config=config)
     net.load_from_file(args.model_file)
     net.cuda().eval()
     # ========== load testing data  =================
@@ -70,11 +70,11 @@ if __name__ == '__main__':
         test_dataset = dataset.allitem()  # locations_test, HRTFs_test
         test_datasets[dataset_name] = test_dataset
     # ========== inference =================
-    num_pts_list = [9]
+    num_pts_list = config.get("lap_sparse_levels", [3, 5, 19, 100])
     for num_pts in num_pts_list:
         config["num_pts"] = num_pts
         print("---------------")
-        print(f'{config["num_pts"]} pts (spherical t-design)')
+        print(f'{config["num_pts"]} pts (SONICOM/LAP sparse layout, nearest-neighbor matched)')
         print("- - - - - - - -")
 
         for dataset_name in test_datasets.keys():
@@ -103,8 +103,15 @@ if __name__ == '__main__':
                 prediction = net.forward(input=input, srcpos=srcpos_sub,mask=mask_sub)
                 hrtf_est = prediction["output"].detach().clone()
 
-                sub_lsd = lsd_loss(hrtf_est, hrtf_sub)
-                sub_ild = ild_loss(hrtf_est, hrtf_sub)
+                eval_range = config.get("evaluation_frequency_range", (20, 20000))
+                freq_axis = np.linspace(0, config["max_frequency"], hrtf_est.shape[-1] + 1)[1:]
+                freq_mask = (freq_axis >= eval_range[0]) & (freq_axis <= eval_range[1])
+                freq_idx = th.as_tensor(np.nonzero(freq_mask)[0], device=hrtf_est.device)
+                hrtf_est_eval = hrtf_est.index_select(-1, freq_idx)
+                hrtf_sub_eval = hrtf_sub.index_select(-1, freq_idx)
+
+                sub_lsd = lsd_loss(hrtf_est_eval, hrtf_sub_eval)
+                sub_ild = ild_loss(hrtf_est_eval, hrtf_sub_eval)
                 print(f"{dataset_name} sub-{sub_id + 1} lsd: {sub_lsd:.4f} ild: {sub_ild:.4f}")
 
                 returns["lsd"] += sub_lsd
@@ -117,7 +124,7 @@ if __name__ == '__main__':
                                 idx_plot_list=horizontal_indices,
                                 config=config)
                 #======== Obtain HRIRs =========
-                fs = config['max_frequency']*2 # sampling frequency
+                fs = config.get('sampling_rate', 44100) # HRIR sampling rate
                 f_us = config['fs_upsampling'] # frequency to calc ITD
                 # ------- Obtain true ITDs ------
                 hrir_sub = posTF2IR_dim4(hrtf_sub)   # S x B x 2 x 2L
@@ -149,8 +156,5 @@ if __name__ == '__main__':
                 returns[k] /= len(subject_list)
             loss_str = "    ".join([f"{k}:{returns[k]:.4}" for k in sorted(returns.keys())])
             print(f"{dataset_name} all subjects "+loss_str)
-
-
-
 
 
