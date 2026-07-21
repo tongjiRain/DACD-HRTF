@@ -32,7 +32,7 @@ We checked the code with the following computational environment.
     torch==1.13.1
     torchaudio == 0.13.1
     python-sofa == 0.2.0
-    teosorboard == 2.19.0
+    tensorboard == 2.19.0
     scipy == 1.13.1
     numpy == 1.26.4
     ```
@@ -44,12 +44,13 @@ You can obtain the raw HRTF datasets from the [SOFA conventions website](https:/
 
 We use the following publicly available datasets in our work:
 
-- ARI  、BiLi 、CIPIC  、Listen 、HUTUBS 、Sonicom、RIEC 、Crossmod
-- **Training/in-dataset evaluation datasets**: ARI, BiLi, CIPIC, Listen, HUTUBS and Sonicom
-- **Unseen-dataset evaluation datasets**:RIEC and Crossmod
+- ARI, BiLi, CIPIC, Listen, HUTUBS, SONICOM, RIEC, Crossmod
+- **Training/in-dataset evaluation datasets**: ARI, BiLi, CIPIC, Listen, HUTUBS and SONICOM
+- **Unseen-dataset evaluation datasets**: RIEC and Crossmod
 
-> **Note**: The released pretrained checkpoint is trained on ARI, BiLi, CIPIC, Listen, HUTUBS and Sonicom.
+> **Note**: The released pretrained checkpoint is trained on ARI, BiLi, CIPIC, Listen, HUTUBS and SONICOM.
 > **Note**: Two subjects from the ARI dataset (`hrtf_nh10.sofa` and `hrtf_nh22.sofa`) are excluded due to missing measurements in certain directions.
+> **Note**: All preprocessing scripts resample HRIRs to 44.1 kHz by default.
 
 After downloading, the raw data should be organized as follows:
 
@@ -67,15 +68,17 @@ data/
 Run the preprocessing script located in the `preprocess/` directory:
 
 ```bash
-run preprocess.py
+python preprocess/preprocess.py
 ```
+
+The sparse input directions follow the SONICOM/LAP sparse layouts with 3, 5, 19, and 100 points. The helper in `sampling/lap_sparse.py` builds the reference layouts and selects the nearest measured directions for each dataset.
 
 ### Project Structure
 
-After dataset collection and preprocessing,  the expected directory layout of the `CDP-HRTF` project is as follows:
+After dataset collection and preprocessing, the expected directory layout of the `DACD-HRTF` project is as follows:
 
 ```
-CDP-HRTF/
+DACD-HRTF/
  ├── data/                       # Raw SOFA files (downloaded HRTF datasets)
  ├── preprocess/                 # Scripts for converting SOFA → internal format
  │   ├── preprocess.py           # Batch-processing of all SOFA files
@@ -92,15 +95,17 @@ CDP-HRTF/
  │       ├── crossmod_001.pkl
  │       ├── riec_000.pkl
  │       └── riec_001.pkl
- ├── src/                        # Core source code
- │   ├── configs.py               # Training & evaluation configurations
+ ├── sparse_sampling/
+ │   └── lap_sparse.py           # SONICOM/LAP sparse layouts and nearest-neighbor matching
+ ├── src/                        # Source code
+ │   ├── configs.py              # Training & evaluation configurations
  │   ├── dataset.py              # Data loading & batching logic
  │   ├── losses.py               # Loss functions (LSD, ILD, contrastive, orthogonality)
- │   ├── model.py                # CDP-HRTF neural network implementation
- │   └── utils.py                # Utility functions (plotting, I/O, etc.)
- ├── t_des/                      # Precomputed t-design sampling grids
+ │   ├── trainer.py              # Training loop interface
+ │   ├── utils.py                # Utility functions (plotting, I/O, etc.)
+ │   └── model.py                # Not included in the pre-publication release
  ├── checkpoint/                 # Saved model checkpoints
- │   └── cdp_hrtf.best.net       # Pretrained model on ARI, BiLi, CIPIC, Listen, HUTUBS
+ │   └── dacd_hrtf.best.net      # Pretrained model on ARI, BiLi, CIPIC, Listen, HUTUBS, SONICOM
  ├── train.py                    # Entry point for training
  └── evaluate_model.py           # Evaluation script for trained models
 ```
@@ -114,22 +119,24 @@ CDP-HRTF/
 ```bash
 python evaluate_model.py 
 --dataset_directory ./preprocessed_data_few/HRIR 
---model_file ./checkpoint/cdp_hrtf.best.net 
+--model_file ./checkpoint/dacd_hrtf.best.net 
 --type_config test
 ```
 
-##### 	2. Test  Pretrained Model on `preprocessed_data` (need to collect data and proprocess)
+##### 	2. Test  Pretrained Model on `preprocessed_data` (need to collect data and preprocess)
 
 ```bash
 python evaluate_model.py 
 --dataset_directory ./preprocessed_data/HRIR 
---model_file ./checkpoint/cdp_hrtf.best.net 
+--model_file ./checkpoint/dacd_hrtf.best.net 
 --type_config test
 ```
 
+The released evaluation route reports overall LSD and ILD over 20 Hz to 20 kHz at 44.1 kHz sampling rate. The sparse input settings are 3, 5, 19, and 100 SONICOM/LAP-aligned directions.
+
 #### Train
 
-##### 	Training the CDP-HRTF with multiple datasets (need to collect data and preprocess)
+##### 	Training the DACD-HRTF with multiple datasets (need to collect data and preprocess)
 
 ```bash
 python train.py 
@@ -148,7 +155,7 @@ python train.py
 ## Notes
 
 - DACD-HRTF is designed for sparse-measurement HRTF upsampling and supports target-direction reconstruction without inference-time fine-tuning.
-- The training datasets are **ARI, BiLi, CIPIC, HUTUBS, Listen, and Sonicom**.
+- The training datasets are **ARI, BiLi, CIPIC, HUTUBS, Listen, and SONICOM**.
 - **RIEC** and **Crossmod** are held out for unseen-dataset evaluation.
-- The **core model code** will be made public after the work is received.
+- The core `src/model.py` implementation will be made public after the work is published.
   
