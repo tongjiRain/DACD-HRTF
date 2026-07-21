@@ -8,7 +8,6 @@ import matplotlib.pyplot as plt
 out_dir = "../preprocessed_data/HRIR"  # HRIRs output directory
 
 def save_hrir_as_pkl():
-    # === 检查输出目录是否存在 ===
     if os.path.exists(out_dir):
         raise FileExistsError(f"Directory '{out_dir}' already exists. Please remove it or choose another path.")
     else:
@@ -21,6 +20,7 @@ def save_hrir_as_pkl():
         "cipic": "CIPIC",
         "listen": "Listen",
         "hutubs": "HUTUBS",
+        "sonicom": "SONICOM",
         "riec": "RIEC",
         "3d3a": "Prin3D3A",
         "crossmod": "Crossmod"
